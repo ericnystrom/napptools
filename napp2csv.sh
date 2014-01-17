@@ -3,16 +3,17 @@
 ## napp2csv.sh -- a shell script to process data files received from
 ## NAPP (North American Population Project) into CSVs.
 ##
-## Created by Eric Nystrom, April-May 2012, January 16, 2014.
+## Copyright by Eric Nystrom, distributed under the terms of the MIT License.
+##   April 2012--January 2014.
 ##
 #################
 ## FILE FORMAT ##
 #################
 ##
 ## The NAPP data files are composed of lines of fixed-length fields,
-## with no field separators.  The fields are defined by a control
+## with no field separators.  The fields are defined by a command
 ## file, available in SPSS, SAS, or STATA, that specifies what ranges
-## (also what lengths) the fields are, and in what order.  The control
+## (also what lengths) the fields are, and in what order.  The command
 ## file also specifies the English translation of most of the
 ## variables, which are numeric in the data.  These variable maps
 ## could later be substituted into the .csv we are producing, but
@@ -32,9 +33,9 @@ while getopts ":ac:d:ikorsz" opt; do
 	ADDHEADERS=YES
 	;;
     c)
-	## Use alternate control file, specified
-	control=$OPTARG
-	echo "Using alternate control file: $OPTARG"
+	## Use alternate command file, specified
+	command=$OPTARG
+	echo "Using alternate command file: $OPTARG"
 	;;
     d)
 	## Use alternate data file, specified 
@@ -92,7 +93,7 @@ then
   echo " "
   echo "Options:"
   echo "  -a           : Add variable name headers to finished CSV files"
-  echo "  -c filename  : Specify alternate control file (include extension)"
+  echo "  -c filename  : Specify alternate command file (include extension)"
   echo "  -d filename  : Specify alternate data file (include extension)"
   echo "  -i           : Create index-generating file: BASEFILENAME.idx"
   echo "  -k           : Keep the cutscript file after run"
@@ -106,10 +107,10 @@ fi
 ## Set the name variable, to be used in a moment
 name=$1
 
-## If $control not set through getopts, set it now as default
-if [ "a$control" = "a" ]
+## If $command not set through getopts, set it now as default
+if [ "a$command" = "a" ]
 then
-  control=$name.sas  
+  command=$name.sas  
 fi
 
 ## If $origdata not set through getopts, set it now as default
@@ -119,9 +120,9 @@ then
 fi
 
 ## Now check that these files exist
-if [ ! -f $control ] 
+if [ ! -f $command ] 
 then
-  echo "Control file $control does not exist!"
+  echo "Command file $command does not exist!"
   exit 2
 fi
 
@@ -149,7 +150,7 @@ tr '"' "'" < $origdata-tmp > $datafile
 rm $origdata-tmp
 
 ##################################
-## GET FIELDS FROM CONTROL FILE ##
+## GET FIELDS FROM COMMAND FILE ##
 ##################################
 ## Eventually I could change/add on these statements to produce
 ## properly formatted .sql files to feed into mysql or similar.  For
@@ -186,7 +187,7 @@ sed -n '
 	     /^$/ d
 	     p
 	}
-' "$control" > "$name-varranges.txt"
+' "$command" > "$name-varranges.txt"
 
 #####################
 ## Variable Labels ##
@@ -216,7 +217,7 @@ sed -n '
 	     /^$/ d
 	     p
 	}
-' "$control" > "$name-varlabels.txt"
+' "$command" > "$name-varlabels.txt"
 
 ####################################
 ## Variables with existing values ##
@@ -240,7 +241,7 @@ sed -n '
 ## update -- added a little header, changed the output to a .csv file
 ## named for the variable, in the current directory, hardcoded colon delim.
 
-for label in $( grep "^value " "$control" | 
+for label in $( grep "^value " "$command" | 
             sed -e 's/^value //' -e 's/_f$//' -e 's/\$ //' ) 
 do 
 
@@ -272,7 +273,7 @@ do
              /^\;/ d # remove end-of-range line
 	     p
 	}
-  " "$control" >> "$label.csv"
+  " "$command" >> "$label.csv"
 
   ## Make $name.idx entries if desired
   if [[ "$INDEX" == "YES" ]]
@@ -335,7 +336,7 @@ sed -n '
 	     /^$/ d
 	     p
 	}
-' "$control" >> cutscript-$$
+' "$command" >> cutscript-$$
 
 ## Now use sed to remove the comma from the last line of the script,
 ## because there's not an obvious (to me) way of addressing that line
